@@ -16,12 +16,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 public class Environment extends javax.swing.JFrame {
 
-    static int clock = 0;
-    static Object lock = new Object();
-    volatile static Set<Sensor> transmitting = new HashSet<>();
+    static int clock;
+    static Object lock;
+    volatile static Set<Sensor> transmitting;
     static AtomicInteger finished;
     static ImageIcon[] icon;
     private int length;
@@ -31,10 +33,10 @@ public class Environment extends javax.swing.JFrame {
     private Thread[] threads;
     private Sensor[][] board;
     private int total;
-    private int reds = 0;
-    private int blues = 0;
-    private final Map<Sensor, Integer> s_x = new HashMap<>();
-    private final Map<Sensor, Integer> s_y = new HashMap<>();
+    private int reds;
+    private int blues;
+    private Map<Sensor, Integer> s_x;
+    private Map<Sensor, Integer> s_y;
 
     /**
      * Creates new form Menu
@@ -340,12 +342,14 @@ public class Environment extends javax.swing.JFrame {
     private void RunActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RunActionPerformed
 
         //System.out.println("REDS & BLUES: " + reds + " " + blues);
+        Run.setEnabled(false);
+        Build.setEnabled(false);
         finished = new AtomicInteger(0);
         for (int i = 0; i < total; i++) {
             threads[i] = new Thread(s[i]);
             threads[i].start();
         }
-        while (clock < duration) {
+        while (clock != -1) {
             System.out.println("CLOCK: " + clock);
             while (finished.get() != total) {
             }
@@ -376,12 +380,12 @@ public class Environment extends javax.swing.JFrame {
             }
             finished.set(0);
             clock++;
+            if (clock == duration) {
+                clock = -1;
+            }
             synchronized (lock) {
                 lock.notifyAll();
             }
-        }
-        for (int i = 0; i < total; i++) {
-            threads[i].interrupt();
         }
         jPanel1.revalidate();
         jPanel1.repaint();
@@ -392,7 +396,7 @@ public class Environment extends javax.swing.JFrame {
         }
         reds_number.setText("" + reds);
         blues_number.setText("" + blues);
-        //System.out.println("REDS & BLUES: " + reds + " " + blues);
+        Build.setEnabled(true);
     }//GEN-LAST:event_RunActionPerformed
 
     private void ExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExitActionPerformed
@@ -416,6 +420,15 @@ public class Environment extends javax.swing.JFrame {
     }//GEN-LAST:event_SensorsNumberActionPerformed
 
     private void BuildActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BuildActionPerformed
+
+        jPanel1.removeAll();
+        lock = new Object();
+        clock = 0;
+        transmitting = new HashSet<>();
+        s_x = new HashMap<>();
+        s_y = new HashMap<>();
+        reds = 0;
+        blues = 0;
 
         Random rand = new Random();
         length = Integer.parseInt(Length.getText()) * 50;

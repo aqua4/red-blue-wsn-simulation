@@ -72,7 +72,7 @@ public class Sensor implements Runnable {
     void add_red_sensor(int sensor) {
         red_sensors.add(sensor);
     }
-    
+
     void add_blue_sensor(int sensor) {
         blue_sensors.add(sensor);
     }
@@ -127,8 +127,14 @@ public class Sensor implements Runnable {
                         lock.wait();
                     }
                 } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
+                    if (!Thread.currentThread().isInterrupted()) {
+                        Thread.currentThread().interrupt();
+                    }
+                    break;
                 }
+            }
+            if (clock == -1 || Thread.currentThread().isInterrupted()) {
+                break;
             }
         }
     }
