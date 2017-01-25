@@ -342,6 +342,7 @@ public class Environment extends javax.swing.JFrame {
     private void RunActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RunActionPerformed
 
         //System.out.println("REDS & BLUES: " + reds + " " + blues);
+        duration = Integer.parseInt(Duration.getText());
         Run.setEnabled(false);
         Build.setEnabled(false);
         finished = new AtomicInteger(0);
@@ -436,7 +437,6 @@ public class Environment extends javax.swing.JFrame {
         if (length * width > 100000000) {
             System.exit(0);
         }
-        duration = Integer.parseInt(Duration.getText());
 
         if (Random.isSelected()) {
             total = Integer.parseInt(SensorsNumber.getText());
