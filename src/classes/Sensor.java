@@ -5,15 +5,19 @@
  */
 package classes;
 
+import static classes.Environment.blues;
 import static classes.Environment.duration;
 import static classes.Environment.gate;
 import static classes.Environment.icon;
+import static classes.Environment.reds;
 import static classes.Environment.transmitting;
+import static java.lang.Thread.sleep;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JLabel;
@@ -93,6 +97,14 @@ public class Sensor implements Runnable {
     private void changeColor(int c) {
         this.color = c;
         this.label.setIcon(icon[c]);
+        if (c == 0) {
+            reds.incrementAndGet();
+            blues.decrementAndGet();
+        } else
+        if (c == 1) {
+            reds.decrementAndGet();
+            blues.incrementAndGet();
+        }
     }
 
     @Override
@@ -106,14 +118,14 @@ public class Sensor implements Runnable {
             state = local_clock % (size + 1);
             switch (status[state]) {
                 case 1:
-                    transmitting[number] = 0;
-                    neighbors.stream().filter((i) -> (transmitting[i] == 1)).forEachOrdered((i) -> {
+                    transmitting.set(number, 0);
+                    neighbors.stream().filter((i) -> (transmitting.get(i) == 1)).forEachOrdered((i) -> {
                         red_sensors.add(i);
                     });
                     break;
                 case 2:
-                    transmitting[number] = 0;
-                    neighbors.stream().filter((i) -> (transmitting[i] == 2)).forEachOrdered((i) -> {
+                    transmitting.set(number, 0);
+                    neighbors.stream().filter((i) -> (transmitting.get(i) == 2)).forEachOrdered((i) -> {
                         blue_sensors.add(i);
                     });
                     break;
@@ -132,13 +144,18 @@ public class Sensor implements Runnable {
                         blue_sensors.clear();
                         //System.out.println("BALANCE: " + balance);
                     }
-                    transmitting[number] = color + 1;
+                    transmitting.set(number, color + 1);
                     break;
                 default:
-                    transmitting[number] = 0;
+                    transmitting.set(number, 0);
                     break;
             }
-            local_clock++;
+            ++local_clock;
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Sensor.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 }

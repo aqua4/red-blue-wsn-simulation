@@ -13,6 +13,7 @@ import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ButtonGroup;
@@ -20,7 +21,7 @@ import javax.swing.ImageIcon;
 
 public class Environment extends javax.swing.JFrame {
 
-    volatile static int[] transmitting;
+    static AtomicIntegerArray transmitting;
     static CyclicBarrier gate;
     static ImageIcon[] icon;
     private int length;
@@ -30,8 +31,10 @@ public class Environment extends javax.swing.JFrame {
     private Thread[] threads;
     private Sensor[][] board;
     private int total;
-    private int reds;
-    private int blues;
+    static AtomicInteger reds;
+    static AtomicInteger blues;
+    private int redN;
+    private int blueN;
     private Map<Sensor, Integer> s_x;
     private Map<Sensor, Integer> s_y;
 
@@ -343,31 +346,46 @@ public class Environment extends javax.swing.JFrame {
         duration = Integer.parseInt(Duration.getText());
         Run.setEnabled(false);
         Build.setEnabled(false);
-        for (int i = 0; i < total; i++) {
-            threads[i].start();
-        }
-        try {
-            gate.await();
-        } catch (InterruptedException | BrokenBarrierException ex) {
-            Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        for (int i = 0; i < total; i++) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        jPanel1.revalidate();
-        jPanel1.repaint();
-        reds = blues = 0;
-        for (int i = 0; i < total; i++) {
-            reds += (s[i].getColor() + 1) % 2;
-            blues += s[i].getColor();
-        }
         reds_number.setText("" + reds);
         blues_number.setText("" + blues);
-        Build.setEnabled(true);
+        Thread main = (new Thread() {
+            @Override
+            public void run() {
+                for (int i = 0; i < total; i++) {
+                    threads[i].start();
+                }
+                try {
+                    gate.await();
+                } catch (InterruptedException | BrokenBarrierException ex) {
+                    Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                for (int i = 0; i < total; i++) {
+                    try {
+                        threads[i].join();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        });
+        main.start();
+        (new Thread() {
+            @Override
+            public void run() {
+                while (main.isAlive()) {
+                    reds_number.setText("" + reds);
+                    blues_number.setText("" + blues);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                reds_number.setText("" + reds);
+                blues_number.setText("" + blues);
+                Build.setEnabled(true);
+            }
+        }).start();
     }//GEN-LAST:event_RunActionPerformed
 
     private void ExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExitActionPerformed
@@ -393,10 +411,12 @@ public class Environment extends javax.swing.JFrame {
     private void BuildActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BuildActionPerformed
 
         jPanel1.removeAll();
+        jPanel1.revalidate();
+        jPanel1.repaint();
         s_x = new HashMap<>();
         s_y = new HashMap<>();
-        reds = 0;
-        blues = 0;
+        reds_number.setText("");
+        blues_number.setText("");
 
         Random rand = new Random();
         length = Integer.parseInt(Length.getText()) * 50;
@@ -405,15 +425,17 @@ public class Environment extends javax.swing.JFrame {
             System.exit(0);
         }
 
+        redN = 0;
+        blueN = 0;
         if (Random.isSelected()) {
             total = Integer.parseInt(SensorsNumber.getText());
         } else {
-            reds = Integer.parseInt(RedNumber.getText());
-            blues = Integer.parseInt(BlueNumber.getText());
-            total = reds + blues;
+            redN = Integer.parseInt(RedNumber.getText());
+            blueN = Integer.parseInt(BlueNumber.getText());
+            total = redN + blueN;
         }
 
-        transmitting = new int[total];
+        transmitting = new AtomicIntegerArray(total);
         gate = new CyclicBarrier(total + 1);
         threads = new Thread[total];
         s = new Sensor[total];
@@ -427,15 +449,15 @@ public class Environment extends javax.swing.JFrame {
             } while (board[x][y] != null);
 
             int color = 0;
-            if (i >= reds) {
+            if (i >= redN) {
                 color = 1;
             }
             if (Random.isSelected()) {
                 color = rand.nextInt(2);
                 if (color == 0) {
-                    reds++;
+                    redN++;
                 } else {
-                    blues++;
+                    blueN++;
                 }
             }
             s[i] = new Sensor(color, 50, i);
@@ -460,9 +482,11 @@ public class Environment extends javax.swing.JFrame {
         }
         jPanel1.revalidate();
         jPanel1.repaint();
-        RedNumber.setText("" + reds);
-        BlueNumber.setText("" + blues);
+        RedNumber.setText("" + redN);
+        BlueNumber.setText("" + blueN);
         SensorsNumber.setText("" + total);
+        reds = new AtomicInteger(redN);
+        blues = new AtomicInteger(blueN);
 
         Run.setEnabled(true);
     }//GEN-LAST:event_BuildActionPerformed
