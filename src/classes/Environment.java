@@ -22,11 +22,13 @@ import javax.swing.ImageIcon;
 public class Environment extends javax.swing.JFrame {
 
     static AtomicIntegerArray transmitting;
+    static volatile boolean finished;
     static CyclicBarrier gate;
     static ImageIcon[] icon;
     private int length;
     private int width;
-    static int duration;
+    private int range;
+    private int duration;
     private Sensor[] s;
     private Thread[] threads;
     private Sensor[][] board;
@@ -90,6 +92,8 @@ public class Environment extends javax.swing.JFrame {
         jLabel12 = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
         Build = new javax.swing.JButton();
+        jLabel4 = new javax.swing.JLabel();
+        Range = new javax.swing.JTextField();
 
         jRadioButton1.setText("jRadioButton1");
 
@@ -97,18 +101,19 @@ public class Environment extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jLabel1.setText(" Length");
+        jLabel1.setText("Length in pixels");
+        jLabel1.setToolTipText("");
 
-        Length.setText("10");
+        Length.setText("500");
         Length.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 LengthActionPerformed(evt);
             }
         });
 
-        jLabel2.setText(" Width");
+        jLabel2.setText("Width in pixels");
 
-        Width.setText("10");
+        Width.setText("500");
         Width.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 WidthActionPerformed(evt);
@@ -204,6 +209,16 @@ public class Environment extends javax.swing.JFrame {
             }
         });
 
+        jLabel4.setText("Range in pixels");
+        jLabel4.setToolTipText("Listening radius of a sensor in pixels");
+
+        Range.setText("50");
+        Range.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                RangeActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -241,13 +256,16 @@ public class Environment extends javax.swing.JFrame {
                                     .addComponent(BlueNumber)
                                     .addComponent(SensorsNumber, javax.swing.GroupLayout.DEFAULT_SIZE, 70, Short.MAX_VALUE)))
                             .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                .addGap(5, 5, 5)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel1)
                                     .addComponent(jLabel2)
-                                    .addComponent(jLabel1))
-                                .addGap(23, 23, 23)
+                                    .addComponent(jLabel4))
+                                .addGap(18, 18, 18)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                     .addComponent(Length, javax.swing.GroupLayout.DEFAULT_SIZE, 50, Short.MAX_VALUE)
-                                    .addComponent(Width)))
+                                    .addComponent(Width)
+                                    .addComponent(Range)))
                             .addComponent(jLabel3)
                             .addComponent(Random)
                             .addGroup(layout.createSequentialGroup()
@@ -258,7 +276,7 @@ public class Environment extends javax.swing.JFrame {
                             .addGroup(layout.createSequentialGroup()
                                 .addGap(46, 46, 46)
                                 .addComponent(Exit, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
@@ -272,7 +290,11 @@ public class Environment extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(Width, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(Range, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(Random)
@@ -314,7 +336,7 @@ public class Environment extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel11)
                     .addComponent(blues_number, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(0, 565, Short.MAX_VALUE))
+                .addGap(0, 529, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
@@ -346,46 +368,38 @@ public class Environment extends javax.swing.JFrame {
         duration = Integer.parseInt(Duration.getText());
         Run.setEnabled(false);
         Build.setEnabled(false);
-        reds_number.setText("" + reds);
-        blues_number.setText("" + blues);
-        Thread main = (new Thread() {
+        reds_number.setText("" + reds.get());
+        blues_number.setText("" + blues.get());
+        IterationNumber.setText("0");
+        new Thread() {
             @Override
             public void run() {
                 for (int i = 0; i < total; i++) {
                     threads[i].start();
                 }
-                try {
-                    gate.await();
-                } catch (InterruptedException | BrokenBarrierException ex) {
-                    Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                for (int i = 0; i < total; i++) {
+                for (int i = 0; i <= duration; ++i) {
                     try {
-                        threads[i].join();
-                    } catch (InterruptedException ex) {
+                        gate.await();
+                    } catch (InterruptedException | BrokenBarrierException ex) {
                         Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                }
-            }
-        });
-        main.start();
-        (new Thread() {
-            @Override
-            public void run() {
-                while (main.isAlive()) {
-                    reds_number.setText("" + reds);
-                    blues_number.setText("" + blues);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
+                    if (i == duration) {
+                        break;
+                    }
+                    while (gate.getNumberWaiting() < total) {}
+                    reds_number.setText("" + reds.get());
+                    blues_number.setText("" + blues.get());
+                    IterationNumber.setText("" + (i + 1));
+                    if (i == duration - 1) {
+                        finished = true;
                     }
                 }
-                reds_number.setText("" + reds);
-                blues_number.setText("" + blues);
-                Build.setEnabled(true);
+                /*reds_number.setText("" + reds.get());
+                blues_number.setText("" + blues.get());
+                IterationNumber.setText("" + duration);
+                */Build.setEnabled(true);
             }
-        }).start();
+        }.start();
     }//GEN-LAST:event_RunActionPerformed
 
     private void ExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExitActionPerformed
@@ -417,10 +431,12 @@ public class Environment extends javax.swing.JFrame {
         s_y = new HashMap<>();
         reds_number.setText("");
         blues_number.setText("");
+        IterationNumber.setText("");
 
         Random rand = new Random();
-        length = Integer.parseInt(Length.getText()) * 50;
-        width = Integer.parseInt(Width.getText()) * 50;
+        length = Integer.parseInt(Length.getText());
+        width = Integer.parseInt(Width.getText());
+        range = Integer.parseInt(Range.getText());
         if (length * width > 100000000) {
             System.exit(0);
         }
@@ -436,10 +452,11 @@ public class Environment extends javax.swing.JFrame {
         }
 
         transmitting = new AtomicIntegerArray(total);
-        gate = new CyclicBarrier(total + 1);
         threads = new Thread[total];
         s = new Sensor[total];
         board = new Sensor[length][width];
+        gate = new CyclicBarrier(total + 1);
+        finished = false;
         //System.out.println("REDS & BLUES: " + reds + " " + blues);
         for (int i = 0; i < total; i++) {
             int x, y;
@@ -447,7 +464,6 @@ public class Environment extends javax.swing.JFrame {
                 x = rand.nextInt(length);
                 y = rand.nextInt(width);
             } while (board[x][y] != null);
-
             int color = 0;
             if (i >= redN) {
                 color = 1;
@@ -460,7 +476,7 @@ public class Environment extends javax.swing.JFrame {
                     blueN++;
                 }
             }
-            s[i] = new Sensor(color, 50, i);
+            s[i] = new Sensor(color, range, i);
             s[i].label.setBounds(x, y, 3, 3);
             s_x.put(s[i], x);
             s_y.put(s[i], y);
@@ -472,8 +488,8 @@ public class Environment extends javax.swing.JFrame {
             int x = s_x.get(s[k]);
             int y = s_y.get(s[k]);
             int r = s[k].getRange();
-            for (int i = max(x - r, 0); i < min(x + r + 1, width); i++) {
-                for (int j = max(y - r, 0); j < min(y + r + 1, length); j++) {
+            for (int i = max(x - r, 0); i < min(x + r + 1, width); ++i) {
+                for (int j = max(y - r, 0); j < min(y + r + 1, length); ++j) {
                     if (!(x == i && y == j) && board[i][j] != null && (int) (Math.sqrt((x - i) * (x - i) + (y - j) * (y - j))) <= r) {
                         s[k].neighbors.add(board[i][j].getNumber());
                     }
@@ -487,9 +503,12 @@ public class Environment extends javax.swing.JFrame {
         SensorsNumber.setText("" + total);
         reds = new AtomicInteger(redN);
         blues = new AtomicInteger(blueN);
-
         Run.setEnabled(true);
     }//GEN-LAST:event_BuildActionPerformed
+
+    private void RangeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RangeActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_RangeActionPerformed
 
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
@@ -530,6 +549,7 @@ public class Environment extends javax.swing.JFrame {
     private javax.swing.JTextField IterationNumber;
     private javax.swing.JTextField Length;
     private javax.swing.JRadioButton Random;
+    private javax.swing.JTextField Range;
     private javax.swing.JTextField RedNumber;
     private javax.swing.JButton Run;
     private javax.swing.JTextField SensorsNumber;
@@ -541,6 +561,7 @@ public class Environment extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;

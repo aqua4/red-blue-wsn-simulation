@@ -6,26 +6,24 @@
 package classes;
 
 import static classes.Environment.blues;
-import static classes.Environment.duration;
+import static classes.Environment.finished;
 import static classes.Environment.gate;
 import static classes.Environment.icon;
 import static classes.Environment.reds;
 import static classes.Environment.transmitting;
-import static java.lang.Thread.sleep;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JLabel;
 
 public class Sensor implements Runnable {
 
-    private Set<Integer> blue_sensors; // nearby blue sensors
-    private Set<Integer> red_sensors;  // nearby red sensors
+    private final Set<Integer> blue_sensors; // nearby blue sensors
+    private final Set<Integer> red_sensors;  // nearby red sensors
     private final int number;         // sensor's number
     private int color;          // 0 - red, 1 - blue
     private int state;          // current state
@@ -36,7 +34,6 @@ public class Sensor implements Runnable {
     private final int time_to_transmit;
     private final int size;
     private int local_clock;
-    private final int start;      // start time
     private final int range;      // transmission range
     ArrayList<Integer> neighbors;
     JLabel label;
@@ -58,7 +55,6 @@ public class Sensor implements Runnable {
         time_to_transmit = rand.nextInt(3) + 3;
         size = time_to_sleep + time_to_reds + time_to_blues + time_to_transmit;
         local_clock = rand.nextInt(size) + 1;
-        start = local_clock;
         state = local_clock;
 
         status = new int[size + 1];
@@ -100,8 +96,7 @@ public class Sensor implements Runnable {
         if (c == 0) {
             reds.incrementAndGet();
             blues.decrementAndGet();
-        } else
-        if (c == 1) {
+        } else if (c == 1) {
             reds.decrementAndGet();
             blues.incrementAndGet();
         }
@@ -109,12 +104,15 @@ public class Sensor implements Runnable {
 
     @Override
     public void run() {
-        try {
-            gate.await();
-        } catch (InterruptedException | BrokenBarrierException ex) {
-            Logger.getLogger(Sensor.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        while (local_clock - start < duration) {
+        while (true) {
+            try {
+                gate.await();
+            } catch (InterruptedException | BrokenBarrierException ex) {
+                Logger.getLogger(Sensor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            if (finished) {
+                break;
+            }
             state = local_clock % (size + 1);
             switch (status[state]) {
                 case 1:
@@ -151,11 +149,6 @@ public class Sensor implements Runnable {
                     break;
             }
             ++local_clock;
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Sensor.class.getName()).log(Level.SEVERE, null, ex);
-            }
         }
     }
 }
