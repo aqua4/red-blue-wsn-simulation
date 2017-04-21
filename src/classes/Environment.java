@@ -5,8 +5,17 @@
  */
 package classes;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import static java.lang.Integer.max;
 import static java.lang.Integer.min;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -22,6 +31,7 @@ import javax.swing.ImageIcon;
 public class Environment extends javax.swing.JFrame {
 
     static AtomicIntegerArray transmitting;
+    static boolean[][] table;
     static volatile boolean finished;
     static CyclicBarrier gate;
     static ImageIcon[] icon;
@@ -371,6 +381,7 @@ public class Environment extends javax.swing.JFrame {
         reds_number.setText("" + reds.get());
         blues_number.setText("" + blues.get());
         IterationNumber.setText("0");
+        table = new boolean[total][duration];
         new Thread() {
             @Override
             public void run() {
@@ -386,7 +397,8 @@ public class Environment extends javax.swing.JFrame {
                     if (i == duration) {
                         break;
                     }
-                    while (gate.getNumberWaiting() < total) {}
+                    while (gate.getNumberWaiting() < total) {
+                    }
                     reds_number.setText("" + reds.get());
                     blues_number.setText("" + blues.get());
                     IterationNumber.setText("" + (i + 1));
@@ -394,10 +406,22 @@ public class Environment extends javax.swing.JFrame {
                         finished = true;
                     }
                 }
-                /*reds_number.setText("" + reds.get());
-                blues_number.setText("" + blues.get());
-                IterationNumber.setText("" + duration);
-                */Build.setEnabled(true);
+                try {
+                    try (Writer writer = new BufferedWriter(new OutputStreamWriter(
+                            new FileOutputStream((new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
+                                    .format(new Timestamp(System.currentTimeMillis())))
+                                    + "-" + total + "sensors" + "-" + duration + "iterations"), "utf-8"))) {
+                        for (int i = 0; i < total; ++i) {
+                            for (int j = 0; j < duration; ++j) {
+                                writer.write("" + Boolean.compare(table[i][j], false) + " ");
+                            }
+                            writer.write("\n");
+                        }
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(Environment.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                Build.setEnabled(true);
             }
         }.start();
     }//GEN-LAST:event_RunActionPerformed

@@ -10,6 +10,7 @@ import static classes.Environment.finished;
 import static classes.Environment.gate;
 import static classes.Environment.icon;
 import static classes.Environment.reds;
+import static classes.Environment.table;
 import static classes.Environment.transmitting;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -33,6 +34,7 @@ public class Sensor implements Runnable {
     private final int time_to_blues;
     private final int time_to_transmit;
     private final int size;
+    private final int start;
     private int local_clock;
     private final int range;      // transmission range
     ArrayList<Integer> neighbors;
@@ -56,6 +58,7 @@ public class Sensor implements Runnable {
         size = time_to_sleep + time_to_reds + time_to_blues + time_to_transmit;
         local_clock = rand.nextInt(size) + 1;
         state = local_clock;
+        start = local_clock;
 
         status = new int[size + 1];
         // 0 for sleep by default
@@ -91,6 +94,7 @@ public class Sensor implements Runnable {
     }
 
     private void changeColor(int c) {
+        table[number][local_clock - start] = true;
         this.color = c;
         this.label.setIcon(icon[c]);
         if (c == 0) {
