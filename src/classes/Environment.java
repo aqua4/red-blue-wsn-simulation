@@ -10,7 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import static java.lang.Integer.max;
 import static java.lang.Integer.min;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -504,7 +503,6 @@ public class Environment extends javax.swing.JFrame {
             }
         }
         finished = false;
-        //System.out.println("REDS & BLUES: " + reds + " " + blues);
         for (int i = 0; i < total; i++) {
             int random = rand.nextInt(c);
             int x = xs[random];
@@ -601,7 +599,6 @@ public class Environment extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(() -> {
             new Environment();
         });
-        //Environment e = new Environment();
 
     }
 

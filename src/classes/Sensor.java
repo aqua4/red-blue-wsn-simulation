@@ -144,7 +144,6 @@ public class Sensor implements Runnable {
                         }
                         red_sensors.clear();
                         blue_sensors.clear();
-                        //System.out.println("BALANCE: " + balance);
                     }
                     transmitting.set(number, color + 1);
                     break;
