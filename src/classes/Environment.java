@@ -110,7 +110,6 @@ public class Environment extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jLabel1.setText("Length in pixels");
-        jLabel1.setToolTipText("");
 
         Length.setText("500");
         Length.addActionListener(new java.awt.event.ActionListener() {
@@ -444,6 +443,10 @@ public class Environment extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_SensorsNumberActionPerformed
 
+    private int dist(int x1, int y1, int x2, int y2) {
+        return (int) Math.sqrt((long) (x1 - x2) * (x1 - x2) + (long) (y1 - y2) * (y1 - y2));
+    }
+
     private void BuildActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BuildActionPerformed
 
         jPanel1.removeAll();
@@ -459,8 +462,12 @@ public class Environment extends javax.swing.JFrame {
         length = Integer.parseInt(Length.getText());
         width = Integer.parseInt(Width.getText());
         range = Integer.parseInt(Range.getText());
-        if (length * width > 100000000) {
+        if ((long) length * width > 100000000) {
             System.exit(0);
+        }
+        int hypo = dist(0, 0, length - 1, width - 1);
+        if (range > hypo) {
+            range = hypo;
         }
 
         redN = 0;
@@ -470,7 +477,15 @@ public class Environment extends javax.swing.JFrame {
         } else {
             redN = Integer.parseInt(RedNumber.getText());
             blueN = Integer.parseInt(BlueNumber.getText());
+            if (redN + blueN > width * length) {
+                int excess = (redN + blueN - width * length + 1) / 2;
+                redN -= excess;
+                blueN -= excess;
+            }
             total = redN + blueN;
+        }
+        if (total > width * length) {
+            total = width * length;
         }
 
         transmitting = new AtomicIntegerArray(total);
@@ -478,14 +493,25 @@ public class Environment extends javax.swing.JFrame {
         s = new Sensor[total];
         board = new Sensor[length][width];
         gate = new CyclicBarrier(total + 1);
+        int[] xs = new int[length * width];
+        int[] ys = new int[length * width];
+        int c = 0;
+        for (int i = 0; i < width; ++i) {
+            for (int j = 0; j < length; ++j) {
+                xs[c] = i;
+                ys[c] = j;
+                ++c;
+            }
+        }
         finished = false;
         //System.out.println("REDS & BLUES: " + reds + " " + blues);
         for (int i = 0; i < total; i++) {
-            int x, y;
-            do {
-                x = rand.nextInt(length);
-                y = rand.nextInt(width);
-            } while (board[x][y] != null);
+            int random = rand.nextInt(c);
+            int x = xs[random];
+            int y = ys[random];
+            xs[random] = xs[c - 1];
+            ys[random] = ys[c - 1];
+            --c;
             int color = 0;
             if (i >= redN) {
                 color = 1;
@@ -506,14 +532,31 @@ public class Environment extends javax.swing.JFrame {
             jPanel1.add(s[i].getLabel());
             threads[i] = new Thread(s[i]);
         }
-        for (int k = 0; k < total; k++) {
-            int x = s_x.get(s[k]);
-            int y = s_y.get(s[k]);
-            int r = s[k].getRange();
-            for (int i = max(x - r, 0); i < min(x + r + 1, width); ++i) {
-                for (int j = max(y - r, 0); j < min(y + r + 1, length); ++j) {
-                    if (!(x == i && y == j) && board[i][j] != null && (int) (Math.sqrt((x - i) * (x - i) + (y - j) * (y - j))) <= r) {
-                        s[k].neighbors.add(board[i][j].getNumber());
+        if ((long) range * range < total) {
+            for (int k = 0; k < total; ++k) {
+                int x = s_x.get(s[k]);
+                int y = s_y.get(s[k]);
+                int r = s[k].getRange();
+                int num = s[k].getNumber();
+                for (int i = x; i < min(x + r + 1, width); ++i) {
+                    for (int j = y; j < min(y + r + 1, length); ++j) {
+                        if (!(x == i && y == j) && board[i][j] != null && dist(x, y, i, j) <= r) {
+                            s[k].neighbors.add(board[i][j].getNumber());
+                            board[i][j].neighbors.add(num);
+                        }
+                    }
+                }
+            }
+        } else {
+            for (int i = 0; i < total; ++i) {
+                int x = s_x.get(s[i]);
+                int y = s_y.get(s[i]);
+                int r = s[i].getRange();
+                int num = s[i].getNumber();
+                for (int j = i + 1; j < total; ++j) {
+                    if (dist(x, y, s_x.get(s[j]), s_y.get(s[j])) <= r) {
+                        s[i].neighbors.add(s[j].getNumber());
+                        s[j].neighbors.add(num);
                     }
                 }
             }
