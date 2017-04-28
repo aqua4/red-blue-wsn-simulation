@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import static java.lang.Integer.max;
 import static java.lang.Integer.min;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -443,7 +444,7 @@ public class Environment extends javax.swing.JFrame {
     }//GEN-LAST:event_SensorsNumberActionPerformed
 
     private int dist(int x1, int y1, int x2, int y2) {
-        return (int) Math.sqrt((long) (x1 - x2) * (x1 - x2) + (long) (y1 - y2) * (y1 - y2));
+        return (int) Math.ceil(Math.sqrt((long) (x1 - x2) * (x1 - x2) + (long) (y1 - y2) * (y1 - y2)));
     }
 
     private void BuildActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BuildActionPerformed
@@ -530,17 +531,15 @@ public class Environment extends javax.swing.JFrame {
             jPanel1.add(s[i].getLabel());
             threads[i] = new Thread(s[i]);
         }
-        if ((long) range * range < total) {
+        if ((long) (range + range + 1) * (range + range + 1) < total) {
             for (int k = 0; k < total; ++k) {
                 int x = s_x.get(s[k]);
                 int y = s_y.get(s[k]);
                 int r = s[k].getRange();
-                int num = s[k].getNumber();
-                for (int i = x; i < min(x + r + 1, width); ++i) {
-                    for (int j = y; j < min(y + r + 1, length); ++j) {
+                for (int i = max(x - r, 0); i < min(x + r + 1, width); ++i) {
+                    for (int j = max(y - r, 0); j < min(y + r + 1, length); ++j) {
                         if (!(x == i && y == j) && board[i][j] != null && dist(x, y, i, j) <= r) {
                             s[k].neighbors.add(board[i][j].getNumber());
-                            board[i][j].neighbors.add(num);
                         }
                     }
                 }

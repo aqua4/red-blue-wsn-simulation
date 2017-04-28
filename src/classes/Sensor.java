@@ -49,6 +49,7 @@ public class Sensor implements Runnable {
         red_sensors = new HashSet<>();
         neighbors = new ArrayList();
         label = new JLabel(icon[color]);
+        transmitting.set(number, 0);
 
         Random rand = new Random();
         time_to_sleep = rand.nextInt(3) + 60;
@@ -120,13 +121,11 @@ public class Sensor implements Runnable {
             state = local_clock % (size + 1);
             switch (status[state]) {
                 case 1:
-                    transmitting.set(number, 0);
                     neighbors.stream().filter((i) -> (transmitting.get(i) == 1)).forEachOrdered((i) -> {
                         red_sensors.add(i);
                     });
                     break;
                 case 2:
-                    transmitting.set(number, 0);
                     neighbors.stream().filter((i) -> (transmitting.get(i) == 2)).forEachOrdered((i) -> {
                         blue_sensors.add(i);
                     });
@@ -148,7 +147,9 @@ public class Sensor implements Runnable {
                     transmitting.set(number, color + 1);
                     break;
                 default:
-                    transmitting.set(number, 0);
+                    if (state == 0) {
+                        transmitting.set(number, 0);
+                    }
                     break;
             }
             ++local_clock;
