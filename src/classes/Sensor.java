@@ -119,6 +119,9 @@ public class Sensor implements Runnable {
                 break;
             }
             state = local_clock % (size + 1);
+            if (state == 0) {
+                transmitting.set(number, 0);
+            }
             switch (status[state]) {
                 case 1:
                     neighbors.stream().filter((i) -> (transmitting.get(i) == 1)).forEachOrdered((i) -> {
@@ -147,9 +150,6 @@ public class Sensor implements Runnable {
                     transmitting.set(number, color + 1);
                     break;
                 default:
-                    if (state == 0) {
-                        transmitting.set(number, 0);
-                    }
                     break;
             }
             ++local_clock;
